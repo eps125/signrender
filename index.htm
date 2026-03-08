@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign Renderer</title>
+  <style>
+    @font-face {
+      font-family: 'GillSansExact';
+      src: url('./GillSansExact.otf') format('opentype');
+      font-weight: 400 700;
+      font-style: normal;
+      font-display: block;
+    }
+
+    @font-face {
+      font-family: 'BRLight';
+      src: url('./BRLight.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+
+    :root {
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #d1d5db;
+      --accent: #2563eb;
+      --red: #e11d48;
+      --yellow: #facc15;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 24px;
+      padding: 24px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+    }
+
+    .controls {
+      padding: 20px;
+      align-self: start;
+      position: sticky;
+      top: 24px;
+    }
+
+    .controls h1 {
+      margin: 0 0 8px;
+      font-size: 1.5rem;
+    }
+
+    .controls p {
+      margin: 0 0 20px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .field label {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .field input,
+    .field select,
+    .field button {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 14px;
+      font: inherit;
+      background: #fff;
+    }
+
+    .field button {
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      font-weight: 600;
+    }
+
+    .field button.secondary {
+      background: #fff;
+      color: var(--text);
+      border-color: var(--border);
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.4;
+      margin-top: -4px;
+    }
+
+    .preview-wrap {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar .status {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .preview-stage {
+      min-height: 560px;
+      background:
+        linear-gradient(45deg, #f8fafc 25%, transparent 25%),
+        linear-gradient(-45deg, #f8fafc 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #f8fafc 75%),
+        linear-gradient(-45deg, transparent 75%, #f8fafc 75%);
+      background-size: 24px 24px;
+      background-position: 0 0, 0 12px, 12px -12px, -12px 0px;
+      border: 1px dashed var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      overflow: auto;
+    }
+
+    .sign-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      align-items: center;
+      width: 100%;
+    }
+
+    .combined-sign {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      line-height: 0;
+    }
+
+    .sign-slot {
+      display: block;
+      line-height: 0;
+    }
+
+    .sign-slot svg {
+      display: block;
+    }
+
+    .empty {
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+      max-width: 420px;
+      padding: 40px 20px;
+    }
+
+    @media (max-width: 960px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .controls {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="panel controls">
+      <div class="field">
+        <label for="signFamily">Sign type</label>
+        <select id="signFamily">
+          <option value="standard">PS / EPS</option>
+          <option value="wi">PSWI / EPSWI</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="direction">Direction arrow</label>
+        <select id="direction">
+          <option value="none">None</option>
+          <option value="left">Left</option>
+          <option value="right">Right</option>
+          <option value="both">Both</option>
+        </select>
+        <div class="hint">Applied only to PS or PSWI boards. EPS and EPSWI boards are always rendered without direction arrows.</div>
+      </div>
+
+      <div class="field">
+        <label for="psValue">PS speed</label>
+        <input id="psValue" type="number" min="0" step="1" placeholder="e.g. 60" />
+        <div class="hint">Leave blank to omit the PS or PSWI sign.</div>
+      </div>
+
+      <div class="field">
+        <label for="epsValue">EPS speed</label>
+        <input id="epsValue" type="number" min="0" step="1" placeholder="e.g. 75" />
+        <div class="hint">Leave blank to omit the EPS or EPSWI sign.</div>
+      </div>
+
+      <div class="field">
+        <button id="copyPngBtn" type="button">Copy preview as PNG</button>
+      </div>
+
+      <div class="field">
+        <button id="downloadPngBtn" class="secondary" type="button">Download PNG</button>
+      </div>
+
+      <div class="hint" id="message">Ready.</div>
+    </section>
+
+    <section class="panel preview-wrap">
+      <div class="toolbar">
+        <div class="status" id="statusText">No signs currently selected.</div>
+      </div>
+      <div class="preview-stage">
+        <div id="preview" class="sign-stack"></div>
+      </div>
+    </section>
+  </div>
+
+  <script src="./rg-signs.js"></script>
+
+  <script>
+    const els = {
+      signFamily: document.getElementById('signFamily'),
+      direction: document.getElementById('direction'),
+      psValue: document.getElementById('psValue'),
+      epsValue: document.getElementById('epsValue'),
+      preview: document.getElementById('preview'),
+      statusText: document.getElementById('statusText'),
+      message: document.getElementById('message'),
+      copyPngBtn: document.getElementById('copyPngBtn'),
+      downloadPngBtn: document.getElementById('downloadPngBtn')
+    };
+
+    const state = {
+      family: 'standard',
+      direction: 'none',
+      ps: '',
+      eps: ''
+    };
+
+    let renderToken = 0;
+
+    function rendererAvailable() {
+      return typeof window.ensureSignRenderersReady === 'function'
+        && typeof window.renderPS === 'function'
+        && typeof window.renderEPS === 'function'
+        && typeof window.renderPSWI === 'function'
+        && typeof window.renderEPSWI === 'function';
+    }
+
+    async function ensureAppFontsReady() {
+      if (!document.fonts || !document.fonts.load) return;
+
+      await Promise.allSettled([
+        document.fonts.load('400 200px BRLight'),
+        document.fonts.load('400 400px GillSansExact'),
+        document.fonts.load('700 400px GillSansExact')
+      ]);
+
+      try {
+        await document.fonts.ready;
+      } catch (error) {
+        console.warn('document.fonts.ready failed', error);
+      }
+    }
+
+    function cleanSpeed(value) {
+      if (value === '' || value == null) return '';
+      const n = Number(value);
+      if (!Number.isFinite(n) || n < 0) return '';
+      return String(Math.round(n));
+    }
+
+    function getBoards() {
+      const boards = [];
+      const ps = cleanSpeed(state.ps);
+      const eps = cleanSpeed(state.eps);
+
+      if (state.family === 'standard') {
+        if (ps) boards.push({ key: 'PS', render: (node) => window.renderPS(node, ps, 0.22, state.direction, 'red') });
+        if (eps) boards.push({ key: 'EPS', render: (node) => window.renderEPS(node, eps, 0.22) });
+      } else {
+        if (ps) boards.push({ key: 'PSWI', render: (node) => window.renderPSWI(node, ps, 0.22, state.direction) });
+        if (eps) boards.push({ key: 'EPSWI', render: (node) => window.renderEPSWI(node, eps, 0.22) });
+      }
+
+      return boards;
+    }
+
+    function wait(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function waitForRendererPaint() {
+      await wait(50);
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    }
+
+    async function renderPreview() {
+      const token = ++renderToken;
+
+      state.family = els.signFamily.value;
+      state.direction = els.direction.value;
+      state.ps = els.psValue.value;
+      state.eps = els.epsValue.value;
+
+      els.preview.innerHTML = '';
+
+      if (!rendererAvailable()) {
+        if (token !== renderToken) return;
+        els.statusText.textContent = 'Renderer not loaded.';
+        els.preview.innerHTML = '<div class="empty">Load <code>rg-signs.js</code> before this page script so the preview can render.</div>';
+        return;
+      }
+
+      await ensureAppFontsReady();
+      if (token !== renderToken) return;
+
+      await window.ensureSignRenderersReady();
+      if (token !== renderToken) return;
+
+      await waitForRendererPaint();
+      if (token !== renderToken) return;
+
+      const boards = getBoards();
+
+      if (!boards.length) {
+        if (token !== renderToken) return;
+        els.statusText.textContent = 'No signs currently selected.';
+        els.preview.innerHTML = '<div class="empty">Enter a PS and/or EPS speed to generate a preview.</div>';
+        return;
+      }
+
+      els.preview.innerHTML = '';
+      els.statusText.textContent = `${boards.length} sign${boards.length === 1 ? '' : 's'} in preview.`;
+
+      const combined = document.createElement('div');
+      combined.className = 'combined-sign';
+      els.preview.appendChild(combined);
+
+      for (const board of boards) {
+        if (token !== renderToken) return;
+        const slot = document.createElement('div');
+        slot.className = 'sign-slot';
+        slot.dataset.key = board.key;
+        combined.appendChild(slot);
+        board.render(slot);
+      }
+
+      await waitForRendererPaint();
+    }
+
+    async function collectRenderedSvgs() {
+      await waitForRendererPaint();
+
+      const combined = els.preview.querySelector('.combined-sign');
+      if (!combined) return [];
+
+      return Array.from(combined.querySelectorAll(':scope > .sign-slot'))
+        .map(slot => slot.querySelector('svg'))
+        .filter(Boolean);
+    }
+
+    function getCssVarValue(name, fallback) {
+      const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return value || fallback;
+    }
+
+    async function blobToDataUrl(blob) {
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Could not read font file.'));
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    async function buildEmbeddedFontCss() {
+      const [gillBlob, brBlob] = await Promise.all([
+        fetch(new URL('./GillSansExact.otf', document.baseURI)).then(r => {
+          if (!r.ok) throw new Error('Could not load GillSansExact.otf for export.');
+          return r.blob();
+        }),
+        fetch(new URL('./BRLight.ttf', document.baseURI)).then(r => {
+          if (!r.ok) throw new Error('Could not load BRLight.ttf for export.');
+          return r.blob();
+        })
+      ]);
+
+      const [gillDataUrl, brDataUrl] = await Promise.all([
+        blobToDataUrl(gillBlob),
+        blobToDataUrl(brBlob)
+      ]);
+
+      return `
+        @font-face {
+          font-family: 'GillSansExact';
+          src: url('${gillDataUrl}') format('opentype');
+          font-weight: 400 700;
+          font-style: normal;
+        }
+        @font-face {
+          font-family: 'BRLight';
+          src: url('${brDataUrl}') format('truetype');
+          font-weight: 400;
+          font-style: normal;
+        }
+        :root {
+          --red: ${getCssVarValue('--red', '#e11d48')};
+          --yellow: ${getCssVarValue('--yellow', '#facc15')};
+        }
+      `;
+    }
+
+    function getRenderableSvgChildren(svg) {
+      return Array.from(svg.children).filter(node => {
+        const tag = node.tagName?.toLowerCase();
+        return tag && tag !== 'defs' && tag !== 'style' && tag !== 'title' && tag !== 'desc';
+      });
+    }
+
+    function unionBoxes(boxes) {
+      if (!boxes.length) {
+        return { x: 0, y: 0, width: 1, height: 1 };
+      }
+
+      const minX = Math.min(...boxes.map(box => box.x));
+      const minY = Math.min(...boxes.map(box => box.y));
+      const maxX = Math.max(...boxes.map(box => box.x + box.width));
+      const maxY = Math.max(...boxes.map(box => box.y + box.height));
+
+      return {
+        x: minX,
+        y: minY,
+        width: Math.max(1, maxX - minX),
+        height: Math.max(1, maxY - minY)
+      };
+    }
+
+    function getMaxStrokePadding(svg) {
+      let maxStroke = 0;
+
+      for (const node of svg.querySelectorAll('*')) {
+        try {
+          const computed = getComputedStyle(node);
+          const stroke = parseFloat(computed.strokeWidth || node.getAttribute('stroke-width') || '0');
+          if (Number.isFinite(stroke)) {
+            maxStroke = Math.max(maxStroke, stroke);
+          }
+        } catch (error) {
+          // Ignore nodes that do not expose computed styles cleanly.
+        }
+      }
+
+      return Math.ceil(maxStroke / 2);
+    }
+
+    function getGraphicBBox(svg) {
+      const children = getRenderableSvgChildren(svg);
+      const boxes = [];
+
+      for (const child of children) {
+        if (typeof child.getBBox !== 'function') continue;
+
+        try {
+          const box = child.getBBox();
+          if (
+            Number.isFinite(box.x)
+            && Number.isFinite(box.y)
+            && Number.isFinite(box.width)
+            && Number.isFinite(box.height)
+            && (box.width > 0 || box.height > 0)
+          ) {
+            boxes.push(box);
+          }
+        } catch (error) {
+          console.warn('Could not read child bbox', error);
+        }
+      }
+
+      const box = unionBoxes(boxes);
+      const pad = Math.max(12, getMaxStrokePadding(svg) + 6);
+
+      return {
+        x: box.x - pad,
+        y: box.y - pad,
+        width: box.width + pad * 2,
+        height: box.height + pad * 2
+      };
+    }
+
+    function cloneSvgForExport(svg, embeddedFontCss) {
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const bbox = getGraphicBBox(svg);
+      const exportSvg = document.createElementNS(svgNS, 'svg');
+
+      exportSvg.setAttribute('xmlns', svgNS);
+      exportSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+      exportSvg.setAttribute('viewBox', `0 0 ${bbox.width} ${bbox.height}`);
+      exportSvg.setAttribute('width', bbox.width);
+      exportSvg.setAttribute('height', bbox.height);
+
+      const defsHost = document.getElementById('defs-host');
+      if (defsHost && defsHost.innerHTML.trim()) {
+        const defs = document.createElementNS(svgNS, 'defs');
+        defs.innerHTML = defsHost.innerHTML;
+        exportSvg.appendChild(defs);
+      }
+
+      const originalDefs = svg.querySelector('defs');
+      if (originalDefs) {
+        exportSvg.appendChild(originalDefs.cloneNode(true));
+      }
+
+      const style = document.createElementNS(svgNS, 'style');
+      style.textContent = embeddedFontCss;
+      exportSvg.appendChild(style);
+
+      const group = document.createElementNS(svgNS, 'g');
+      group.setAttribute('transform', `translate(${-bbox.x}, ${-bbox.y})`);
+
+      for (const child of getRenderableSvgChildren(svg)) {
+        group.appendChild(child.cloneNode(true));
+      }
+
+      exportSvg.appendChild(group);
+
+      return {
+        svg: exportSvg,
+        width: bbox.width,
+        height: bbox.height
+      };
+    }
+
+    async function buildCompositeSvgBlob() {
+      await ensureAppFontsReady();
+      const svgs = await collectRenderedSvgs();
+
+      if (!svgs.length) {
+        throw new Error('There is nothing to export.');
+      }
+
+      const embeddedFontCss = await buildEmbeddedFontCss();
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const composite = document.createElementNS(svgNS, 'svg');
+      composite.setAttribute('xmlns', svgNS);
+      composite.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+
+      const items = svgs.map(svg => cloneSvgForExport(svg, embeddedFontCss));
+
+      const width = Math.ceil(Math.max(...items.map(item => item.width)));
+      const height = Math.ceil(items.reduce((sum, item) => sum + item.height, 0));
+
+      composite.setAttribute('viewBox', `0 0 ${width} ${height}`);
+      composite.setAttribute('width', width);
+      composite.setAttribute('height', height);
+
+      let y = 0;
+      for (const item of items) {
+        const group = document.createElementNS(svgNS, 'g');
+        group.setAttribute('transform', `translate(${(width - item.width) / 2}, ${y})`);
+        group.appendChild(item.svg);
+        composite.appendChild(group);
+        y += item.height;
+      }
+
+      const svgText = new XMLSerializer().serializeToString(composite);
+      return new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+    }
+
+    async function buildCompositePngBlob() {
+        const svgBlob = await buildCompositeSvgBlob();
+        const url = URL.createObjectURL(svgBlob);
+
+        try {
+            const img = new Image();
+
+            await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+            img.src = url;
+            });
+
+            const signCount = (await collectRenderedSvgs()).length;
+            if (!signCount) {
+            throw new Error("There is nothing to export.");
+            }
+
+            // 75px per sign vertically
+            const targetHeight = 75 * signCount;
+
+            // Preserve aspect ratio from the tightly-cropped composite SVG
+            const naturalWidth = img.naturalWidth || img.width;
+            const naturalHeight = img.naturalHeight || img.height;
+            const scale = targetHeight / naturalHeight;
+            const targetWidth = Math.max(1, Math.round(naturalWidth * scale));
+
+            const canvas = document.createElement("canvas");
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Try both settings and keep the one you prefer visually.
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = "high";
+
+            ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+            return await new Promise((resolve, reject) => {
+            canvas.toBlob(blob => {
+                if (blob) resolve(blob);
+                else reject(new Error("Failed to create PNG blob."));
+            }, "image/png");
+            });
+        } finally {
+            URL.revokeObjectURL(url);
+        }
+    }
+
+    async function copyPreviewAsPng() {
+      try {
+        const blob = await buildCompositePngBlob();
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+        els.message.textContent = 'PNG copied to clipboard.';
+      } catch (error) {
+        console.error(error);
+        els.message.textContent = `Copy failed: ${error.message}`;
+      }
+    }
+
+    async function downloadPreviewAsPng() {
+        try {
+            const blob = await buildCompositePngBlob();
+
+            const handle = await window.showSaveFilePicker({
+            types: [
+                {
+                description: "PNG image",
+                accept: {
+                    "image/png": [".png"]
+                }
+                }
+            ]
+            });
+
+            const writable = await handle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+
+        } catch (err) {
+            // User cancelling the dialog throws AbortError — ignore it
+            if (err.name !== "AbortError") {
+            console.error(err);
+            alert("Failed to save PNG.");
+            }
+        }
+    }
+
+    els.signFamily.addEventListener('change', renderPreview);
+    els.direction.addEventListener('change', renderPreview);
+    els.psValue.addEventListener('input', renderPreview);
+    els.epsValue.addEventListener('input', renderPreview);
+
+    els.copyPngBtn.addEventListener('click', copyPreviewAsPng);
+    els.downloadPngBtn.addEventListener('click', downloadPreviewAsPng);
+
+    renderPreview();
+  </script>
+</body>
+</html>

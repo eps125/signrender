@@ -388,15 +388,70 @@
       await waitForRendererPaint();
     }
 
-    async function collectRenderedSvgs() {
-      await waitForRendererPaint();
+    async function collectRenderedSlots() {
+        await waitForRendererPaint();
 
-      const combined = els.preview.querySelector('.combined-sign');
-      if (!combined) return [];
+        const combined = els.preview.querySelector('.combined-sign');
+        if (!combined) return [];
 
-      return Array.from(combined.querySelectorAll(':scope > .sign-slot'))
-        .map(slot => slot.querySelector('svg'))
-        .filter(Boolean);
+        return Array.from(combined.querySelectorAll(':scope > .sign-slot'));
+    }
+
+    function cloneSlotForExport(slot, embeddedFontCss) {
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const slotRect = slot.getBoundingClientRect();
+        const childSvgs = Array.from(slot.querySelectorAll('svg'));
+
+        if (!childSvgs.length || !slotRect.width || !slotRect.height) {
+            throw new Error('Could not export sign slot.');
+        }
+
+        const exportSvg = document.createElementNS(svgNS, 'svg');
+        exportSvg.setAttribute('xmlns', svgNS);
+        exportSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+        exportSvg.setAttribute('viewBox', `0 0 ${slotRect.width} ${slotRect.height}`);
+        exportSvg.setAttribute('width', slotRect.width);
+        exportSvg.setAttribute('height', slotRect.height);
+
+        const defsHost = document.getElementById('defs-host');
+        if (defsHost && defsHost.innerHTML.trim()) {
+            const defs = document.createElementNS(svgNS, 'defs');
+            defs.innerHTML = defsHost.innerHTML;
+            exportSvg.appendChild(defs);
+        }
+
+        const style = document.createElementNS(svgNS, 'style');
+        style.textContent = embeddedFontCss;
+        exportSvg.appendChild(style);
+
+        for (const originalSvg of childSvgs) {
+            const rect = originalSvg.getBoundingClientRect();
+            const x = rect.left - slotRect.left;
+            const y = rect.top - slotRect.top;
+
+            const wrapper = document.createElementNS(svgNS, 'g');
+            wrapper.setAttribute('transform', `translate(${x}, ${y})`);
+
+            const clone = originalSvg.cloneNode(true);
+
+            clone.setAttribute('x', '0');
+            clone.setAttribute('y', '0');
+            clone.setAttribute('width', rect.width);
+            clone.setAttribute('height', rect.height);
+
+            if (!clone.getAttribute('viewBox')) {
+            clone.setAttribute('viewBox', `0 0 ${rect.width} ${rect.height}`);
+            }
+
+            wrapper.appendChild(clone);
+            exportSvg.appendChild(wrapper);
+        }
+
+        return {
+            svg: exportSvg,
+            width: slotRect.width,
+            height: slotRect.height
+        };
     }
 
     function getCssVarValue(name, fallback) {
@@ -607,54 +662,90 @@
     }
 
     async function buildCompositePngBlob() {
-        const svgBlob = await buildCompositeSvgBlob();
-        const url = URL.createObjectURL(svgBlob);
+        await ensureAppFontsReady();
+        await waitForRendererPaint();
 
-        try {
-            const img = new Image();
+        const slots = await collectRenderedSlots();
 
-            await new Promise((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
-            img.src = url;
+        if (!slots.length) {
+            throw new Error('There is nothing to export.');
+        }
+
+        const embeddedFontCss = await buildEmbeddedFontCss();
+
+        const CANVAS_WIDTH = 75;
+        const SIDE_PADDING = 2;
+        const INNER_WIDTH = CANVAS_WIDTH - SIDE_PADDING * 2;
+
+        function svgToBlob(svgElement) {
+            const svgText = new XMLSerializer().serializeToString(svgElement);
+            return new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
+        }
+
+        async function loadImageFromBlob(blob) {
+            const url = URL.createObjectURL(blob);
+
+            try {
+            return await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error('SVG could not be rasterized.'));
+                img.src = url;
             });
+            } finally {
+            URL.revokeObjectURL(url);
+            }
+        }
 
-            const signCount = (await collectRenderedSvgs()).length;
-            if (!signCount) {
-            throw new Error("There is nothing to export.");
+        const renderedItems = [];
+
+        for (const slot of slots) {
+            const item = cloneSlotForExport(slot, embeddedFontCss);
+            const blob = svgToBlob(item.svg);
+            const img = await loadImageFromBlob(blob);
+
+            const naturalWidth = img.naturalWidth || item.width;
+            const naturalHeight = img.naturalHeight || item.height;
+
+            if (!naturalWidth || !naturalHeight) {
+            throw new Error('Invalid exported sign size.');
             }
 
-            // 75px per sign vertically
-            const targetHeight = 75 * signCount;
+            const scale = INNER_WIDTH / naturalWidth;
+            const drawWidth = Math.max(1, Math.round(naturalWidth * scale));
+            const drawHeight = Math.max(1, Math.round(naturalHeight * scale));
 
-            // Preserve aspect ratio from the tightly-cropped composite SVG
-            const naturalWidth = img.naturalWidth || img.width;
-            const naturalHeight = img.naturalHeight || img.height;
-            const scale = targetHeight / naturalHeight;
-            const targetWidth = Math.max(1, Math.round(naturalWidth * scale));
-
-            const canvas = document.createElement("canvas");
-            canvas.width = targetWidth;
-            canvas.height = targetHeight;
-
-            const ctx = canvas.getContext("2d");
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Try both settings and keep the one you prefer visually.
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = "high";
-
-            ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-            return await new Promise((resolve, reject) => {
-            canvas.toBlob(blob => {
-                if (blob) resolve(blob);
-                else reject(new Error("Failed to create PNG blob."));
-            }, "image/png");
+            renderedItems.push({
+            img,
+            drawWidth,
+            drawHeight
             });
-        } finally {
-            URL.revokeObjectURL(url);
         }
+
+        const totalHeight = renderedItems.reduce((sum, item) => sum + item.drawHeight, 0);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = totalHeight;
+
+        const ctx = canvas.getContext('2d', { alpha: true });
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        let y = 0;
+        for (const item of renderedItems) {
+            const x = Math.round((CANVAS_WIDTH - item.drawWidth) / 2);
+            ctx.drawImage(item.img, x, y, item.drawWidth, item.drawHeight);
+            y += item.drawHeight;
+        }
+
+        return await new Promise((resolve, reject) => {
+            canvas.toBlob(blob => {
+            if (blob) resolve(blob);
+            else reject(new Error('PNG export failed.'));
+            }, 'image/png');
+        });
     }
 
     async function copyPreviewAsPng() {

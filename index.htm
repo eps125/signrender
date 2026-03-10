@@ -217,6 +217,12 @@
       </div>
 
       <div class="field">
+        <label for="muValue">MU speed</label>
+        <input id="muValue" type="number" min="0" step="1" placeholder="e.g. 90" />
+        <div class="hint">Leave blank to omit the MU sign.</div>
+      </div>
+
+      <div class="field">
         <label for="epsValue">EPS speed</label>
         <input id="epsValue" type="number" min="0" step="1" placeholder="e.g. 75" />
         <div class="hint">Leave blank to omit the EPS or EPSWI sign.</div>
@@ -250,6 +256,7 @@
       signFamily: document.getElementById('signFamily'),
       direction: document.getElementById('direction'),
       psValue: document.getElementById('psValue'),
+      muValue: document.getElementById('muValue'),
       epsValue: document.getElementById('epsValue'),
       preview: document.getElementById('preview'),
       statusText: document.getElementById('statusText'),
@@ -262,6 +269,7 @@
       family: 'standard',
       direction: 'none',
       ps: '',
+      mu: '',
       eps: ''
     };
 
@@ -270,6 +278,7 @@
     function rendererAvailable() {
       return typeof window.ensureSignRenderersReady === 'function'
         && typeof window.renderPS === 'function'
+        && typeof window.renderMU === 'function'
         && typeof window.renderEPS === 'function'
         && typeof window.renderPSWI === 'function'
         && typeof window.renderEPSWI === 'function';
@@ -301,10 +310,12 @@
     function getBoards() {
       const boards = [];
       const ps = cleanSpeed(state.ps);
+      const mu = cleanSpeed(state.mu);
       const eps = cleanSpeed(state.eps);
 
       if (state.family === 'standard') {
         if (ps) boards.push({ key: 'PS', render: (node) => window.renderPS(node, ps, 0.22, state.direction, 'red') });
+        if (mu) boards.push({ key: 'MU', render: (node) => window.renderMU(node, mu, 0.22) });
         if (eps) boards.push({ key: 'EPS', render: (node) => window.renderEPS(node, eps, 0.22) });
       } else {
         if (ps) boards.push({ key: 'PSWI', render: (node) => window.renderPSWI(node, ps, 0.22, state.direction) });
@@ -365,6 +376,7 @@
       state.family = els.signFamily.value;
       state.direction = els.direction.value;
       state.ps = els.psValue.value;
+      state.mu = els.muValue.value;
       state.eps = els.epsValue.value;
 
       els.preview.innerHTML = '';
@@ -687,6 +699,7 @@
     els.signFamily.addEventListener('change', renderPreview);
     els.direction.addEventListener('change', renderPreview);
     els.psValue.addEventListener('input', renderPreview);
+    els.muValue.addEventListener('input', renderPreview);
     els.epsValue.addEventListener('input', renderPreview);
 
     els.copyPngBtn.addEventListener('click', copyPreviewAsPng);

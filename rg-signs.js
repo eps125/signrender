@@ -188,6 +188,42 @@
     container.appendChild(svg);
   }
 
+  function _renderMU(container, speed, scale){
+    const s = String(speed);
+    const isThree = s.length >= 3;
+    const svg=document.createElementNS(svgNS,'svg');
+    svg.setAttribute('viewBox','0 0 900 900');
+    if(scale){ svg.setAttribute('width',900*scale); svg.setAttribute('height',900*scale); }
+
+    const disc=document.createElementNS(svgNS,'circle');
+    disc.setAttribute('cx','450'); disc.setAttribute('cy','450'); disc.setAttribute('r','400');
+    disc.setAttribute('fill','#fff'); disc.setAttribute('stroke','var(--red)'); disc.setAttribute('stroke-width','40'); svg.appendChild(disc);
+
+    const label=document.createElementNS(svgNS,'text');
+    label.textContent='MU'; label.setAttribute('x','450'); label.setAttribute('fill','#000');
+    label.setAttribute('font-family','GillSansExact'); label.setAttribute('font-size','140'); label.setAttribute('stroke','#000'); label.setAttribute('stroke-width','6'); label.setAttribute('paint-order','stroke fill'); label.setAttribute('text-anchor','middle'); svg.appendChild(label);
+
+    const digits=document.createElementNS(svgNS,'text');
+    digits.textContent=s; digits.setAttribute('x','450'); digits.setAttribute('fill','#000');
+    digits.setAttribute('stroke','#000'); digits.setAttribute('stroke-width','10'); digits.setAttribute('paint-order','stroke fill');
+    digits.setAttribute('font-family','GillSansExact'); digits.setAttribute('font-size', isThree ? '330' : '370'); digits.setAttribute('text-anchor','middle'); svg.appendChild(digits);
+
+    requestAnimationFrame(()=>{
+      const topMU=55;  const bbL=label.getBBox(); label.setAttribute('y', topMU - bbL.y);
+      const gL=document.createElementNS(svgNS,'g');
+      gL.setAttribute('transform',`translate(450,${topMU}) scale(1.40) translate(-450,0)`);
+      svg.removeChild(label); gL.appendChild(label); svg.appendChild(gL);
+
+      const topNum = isThree ? 255 : 235;
+      const bbD=digits.getBBox(); digits.setAttribute('y', topNum - bbD.y);
+      const gD=document.createElementNS(svgNS,'g');
+      gD.setAttribute('transform',`translate(450,${topNum}) scale(${isThree ? OV3 : 1.25}) translate(-450,-${topNum})`);
+      svg.removeChild(digits); gD.appendChild(digits); svg.appendChild(gD);
+    });
+
+    container.innerHTML=''; container.appendChild(svg);
+  }
+
   function _renderEPS(container, speed, scale){
     const s=String(speed);
     const svg=document.createElementNS(svgNS,'svg'); svg.setAttribute('viewBox','0 0 900 900');
@@ -280,6 +316,7 @@
       const dir=(el.getAttribute('data-dir')||'none').toLowerCase();
       if(type==='PS') _renderPS(el, speed, scale, dir);
       else if (type==='PSWI') _renderPSWI(el, speed, scale, dir);
+      else if(type==='MU') _renderMU(el, speed, scale);
       else if(type==='EPS') _renderEPS(el, speed, scale);
       else if(type==='EPSWI') _renderEPSWI(el, speed, scale);
     });
@@ -287,6 +324,7 @@
 
   window.renderPS   = function(el, s, scale, dir, dirColor){ _renderPS(el, s, scale, dir, dirColor); };
   window.renderPSWI = function(el, s, scale, dir){ _renderPSWI(el, s, scale, dir); };
+  window.renderMU   = function(el, s, scale){ _renderMU(el, s, scale); };
   window.renderEPS  = function(el, s, scale){ _renderEPS(el, s, scale); };
   window.renderEPSWI= function(el, s, scale){ _renderEPSWI(el, s, scale); };
   window.ensureSignRenderersReady = ensureSignRenderersReady;

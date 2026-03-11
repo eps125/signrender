@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sign Renderer</title>
+  <title>Sign & Signal Renderer</title>
   <style>
     @font-face {
       font-family: 'GillSansExact';
@@ -16,6 +16,14 @@
     @font-face {
       font-family: 'BRLight';
       src: url('./BRLight.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+      font-display: block;
+    }
+
+    @font-face {
+      font-family: 'LEDDotMatrix';
+      src: url('./LEDDotMatrix.ttf') format('truetype');
       font-weight: 400;
       font-style: normal;
       font-display: block;
@@ -41,12 +49,43 @@
       color: var(--text);
     }
 
+    .page {
+      padding: 24px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .tabs {
+      display: inline-flex;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 16px;
+      background: #e5e7eb;
+      width: fit-content;
+    }
+
+    .tab-btn {
+      border: 0;
+      border-radius: 12px;
+      background: transparent;
+      padding: 10px 18px;
+      font: inherit;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      background: var(--panel);
+      color: var(--text);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+
     .app {
-      min-height: 100vh;
+      min-height: calc(100vh - 120px);
       display: grid;
       grid-template-columns: 360px 1fr;
       gap: 24px;
-      padding: 24px;
     }
 
     .panel {
@@ -67,6 +106,12 @@
       display: grid;
       gap: 8px;
       margin-bottom: 16px;
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
     }
 
     .field label {
@@ -104,6 +149,10 @@
       font-size: 0.85rem;
       line-height: 1.4;
       margin-top: -4px;
+    }
+
+    .control-group[hidden] {
+      display: none !important;
     }
 
     .preview-wrap {
@@ -160,13 +209,19 @@
       line-height: 0;
     }
 
-    .sign-slot {
+    .sign-slot,
+    .signal-slot {
       display: block;
       line-height: 0;
     }
 
-    .sign-slot svg {
+    .sign-slot svg,
+    .signal-slot svg {
       display: block;
+    }
+
+    .signal-slot {
+      width: min(100%, 360px);
     }
 
     .empty {
@@ -186,78 +241,185 @@
         position: static;
       }
     }
+
+    @media (max-width: 640px) {
+      .field-row {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="app">
-    <section class="panel controls">
-      <div class="field">
-        <label for="signFamily">Sign type</label>
-        <select id="signFamily">
-          <option value="standard">PS / EPS</option>
-          <option value="wi">PSWI / EPSWI</option>
-        </select>
-      </div>
+  <div class="page">
+    <div class="tabs" role="tablist" aria-label="Renderer mode">
+      <button id="tabSigns" class="tab-btn active" type="button" role="tab" aria-selected="true">Signs</button>
+      <button id="tabSignals" class="tab-btn" type="button" role="tab" aria-selected="false">Signals</button>
+    </div>
 
-      <div class="field">
-        <label for="direction">Direction arrow</label>
-        <select id="direction">
-          <option value="none">None</option>
-          <option value="left">Left</option>
-          <option value="right">Right</option>
-          <option value="both">Both</option>
-        </select>
-        <div class="hint">Applied only to PS or PSWI boards. EPS and EPSWI boards are always rendered without direction arrows.</div>
-      </div>
+    <div class="app">
+      <section class="panel controls">
+        <div id="signControls" class="control-group">
+          <div class="field">
+            <label for="signFamily">Sign type</label>
+            <select id="signFamily">
+              <option value="standard">PS / EPS</option>
+              <option value="wi">PSWI / EPSWI</option>
+            </select>
+          </div>
 
-      <div class="field">
-        <label for="psValue">PS speed</label>
-        <input id="psValue" type="number" min="0" step="1" placeholder="e.g. 60" />
-        <div class="hint">Leave blank to omit the PS or PSWI sign.</div>
-      </div>
+          <div class="field">
+            <label for="direction">Direction arrow</label>
+            <select id="direction">
+              <option value="none">None</option>
+              <option value="left">Left</option>
+              <option value="right">Right</option>
+              <option value="both">Both</option>
+            </select>
+            <div class="hint">Applied only to PS or PSWI boards. EPS and EPSWI boards are always rendered without direction arrows.</div>
+          </div>
 
-      <div class="field">
-        <label for="muValue">MU speed</label>
-        <input id="muValue" type="number" min="0" step="1" placeholder="e.g. 90" />
-        <div class="hint">Leave blank to omit the MU sign.</div>
-      </div>
+          <div class="field">
+            <label for="psValue">PS speed</label>
+            <input id="psValue" type="number" min="0" step="1" placeholder="e.g. 60" />
+            <div class="hint">Leave blank to omit the PS or PSWI sign.</div>
+          </div>
 
-      <div class="field">
-        <label for="epsValue">EPS speed</label>
-        <input id="epsValue" type="number" min="0" step="1" placeholder="e.g. 75" />
-        <div class="hint">Leave blank to omit the EPS or EPSWI sign.</div>
-      </div>
+          <div class="field">
+            <label for="muValue">MU speed</label>
+            <input id="muValue" type="number" min="0" step="1" placeholder="e.g. 90" />
+            <div class="hint">Leave blank to omit the MU sign.</div>
+          </div>
 
-      <div class="field">
-        <button id="copyPngBtn" type="button">Copy preview as PNG</button>
-      </div>
+          <div class="field">
+            <label for="epsValue">EPS speed</label>
+            <input id="epsValue" type="number" min="0" step="1" placeholder="e.g. 75" />
+            <div class="hint">Leave blank to omit the EPS or EPSWI sign.</div>
+          </div>
+        </div>
 
-      <div class="field">
-        <button id="downloadPngBtn" class="secondary" type="button">Download PNG</button>
-      </div>
+        <div id="signalControls" class="control-group" hidden>
+          <div class="field">
+            <label for="signalType">Signal Type</label>
+            <select id="signalType">
+              <option value="4aspect">4 Aspect</option>
+            </select>
+          </div>
 
-      <div class="hint" id="message">Ready.</div>
-    </section>
+          <div class="field">
+            <label for="aspectDisplayed">Aspect Displayed</label>
+            <select id="aspectDisplayed">
+              <option value="None">None</option>
+              <option value="R">R</option>
+              <option value="Y">Y</option>
+              <option value="YY">YY</option>
+              <option value="FY">FY</option>
+              <option value="FYY">FYY</option>
+              <option value="G">G</option>
+            </select>
+          </div>
 
-    <section class="panel preview-wrap">
-      <div class="toolbar">
-        <div class="status" id="statusText">No signs currently selected.</div>
-      </div>
-      <div class="preview-stage">
-        <div id="preview" class="sign-stack"></div>
-      </div>
-    </section>
+          <div class="field-row">
+            <div class="field"><label for="ji1">JI 1</label><select id="ji1"></select></div>
+            <div class="field"><label for="ji2">JI 2</label><select id="ji2"></select></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="ji3">JI 3</label><select id="ji3"></select></div>
+            <div class="field"><label for="ji4">JI 4</label><select id="ji4"></select></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label for="ji5">JI 5</label><select id="ji5"></select></div>
+            <div class="field"><label for="ji6">JI 6</label><select id="ji6"></select></div>
+          </div>
+          <div class="hint"></div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="bottomTheatreLeft">Bottom Theatre Left</label>
+              <input id="bottomTheatreLeft" type="text" maxlength="1" placeholder="Single character" />
+            </div>
+            <div class="field">
+              <label for="bottomTheatreRight">Bottom Theatre Right</label>
+              <input id="bottomTheatreRight" type="text" maxlength="1" placeholder="Single character" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="theatreColour">Theatre Colour</label>
+            <select id="theatreColour">
+              <option value="White">White</option>
+              <option value="Green">Green</option>
+              <option value="Yellow">Yellow</option>
+              <option value="Red">Red</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="signalId">Signal ID</label>
+            <input id="signalId" type="text" maxlength="9" placeholder="e.g. XX 1234" />
+            <div class="hint"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <button id="copyPngBtn" type="button">Copy preview as PNG</button>
+        </div>
+
+        <div class="field">
+          <button id="downloadPngBtn" class="secondary" type="button">Download PNG</button>
+        </div>
+
+        <div class="hint" id="message">Ready.</div>
+      </section>
+
+      <section class="panel preview-wrap">
+        <div class="toolbar">
+          <div class="status" id="statusText">No signs currently selected.</div>
+        </div>
+        <div class="preview-stage">
+          <div id="preview" class="sign-stack"></div>
+        </div>
+      </section>
+    </div>
   </div>
 
-  <script src="./renderer-100326.js"></script>
+  <script src="./renderer-110326.js"></script>
 
   <script>
+    const signalColourOptions = ['None', 'White', 'Green', 'Yellow', 'Red'];
+
+    function populateJiSelect(select) {
+      for (const option of signalColourOptions) {
+        const el = document.createElement('option');
+        el.value = option;
+        el.textContent = option;
+        select.appendChild(el);
+      }
+    }
+
+    ['ji1', 'ji2', 'ji3', 'ji4', 'ji5', 'ji6'].forEach(id => populateJiSelect(document.getElementById(id)));
+
     const els = {
+      tabSigns: document.getElementById('tabSigns'),
+      tabSignals: document.getElementById('tabSignals'),
+      signControls: document.getElementById('signControls'),
+      signalControls: document.getElementById('signalControls'),
       signFamily: document.getElementById('signFamily'),
       direction: document.getElementById('direction'),
       psValue: document.getElementById('psValue'),
       muValue: document.getElementById('muValue'),
       epsValue: document.getElementById('epsValue'),
+      signalType: document.getElementById('signalType'),
+      aspectDisplayed: document.getElementById('aspectDisplayed'),
+      ji1: document.getElementById('ji1'),
+      ji2: document.getElementById('ji2'),
+      ji3: document.getElementById('ji3'),
+      ji4: document.getElementById('ji4'),
+      ji5: document.getElementById('ji5'),
+      ji6: document.getElementById('ji6'),
+      bottomTheatreLeft: document.getElementById('bottomTheatreLeft'),
+      bottomTheatreRight: document.getElementById('bottomTheatreRight'),
+      theatreColour: document.getElementById('theatreColour'),
+      signalId: document.getElementById('signalId'),
       preview: document.getElementById('preview'),
       statusText: document.getElementById('statusText'),
       message: document.getElementById('message'),
@@ -266,11 +428,19 @@
     };
 
     const state = {
+      mode: 'signs',
       family: 'standard',
       direction: 'none',
       ps: '',
       mu: '',
-      eps: ''
+      eps: '',
+      signalType: '4aspect',
+      aspectDisplayed: 'None',
+      ji: ['None', 'None', 'None', 'None', 'None', 'None'],
+      bottomTheatreLeft: '',
+      bottomTheatreRight: '',
+      theatreColor: 'White',
+      signalId: ''
     };
 
     let renderToken = 0;
@@ -281,7 +451,9 @@
         && typeof window.renderMU === 'function'
         && typeof window.renderEPS === 'function'
         && typeof window.renderPSWI === 'function'
-        && typeof window.renderEPSWI === 'function';
+        && typeof window.renderEPSWI === 'function'
+        && typeof window.renderSignal === 'function'
+        && typeof window.normalizeSignalConfig === 'function';
     }
 
     async function ensureAppFontsReady() {
@@ -290,7 +462,8 @@
       await Promise.allSettled([
         document.fonts.load('400 200px BRLight'),
         document.fonts.load('400 400px GillSansExact'),
-        document.fonts.load('700 400px GillSansExact')
+        document.fonts.load('700 400px GillSansExact'),
+        document.fonts.load('400 48px "LEDDotMatrix"')
       ]);
 
       try {
@@ -305,6 +478,10 @@
       const n = Number(value);
       if (!Number.isFinite(n) || n < 0) return '';
       return String(Math.round(n));
+    }
+
+    function normalizeSignalIdInput(value) {
+      return (value || '').toUpperCase().replace(/\s+/g, ' ').replace(/[^A-Z0-9 ]/g, '').trimStart().slice(0, 9);
     }
 
     function getBoards() {
@@ -325,6 +502,19 @@
       return boards;
     }
 
+    function getNormalizedSignalConfig() {
+      return window.normalizeSignalConfig({
+        signalType: state.signalType,
+        aspectDisplayed: state.aspectDisplayed,
+        ji: state.ji,
+        bottomTheatreLeft: state.bottomTheatreLeft,
+        bottomTheatreRight: state.bottomTheatreRight,
+        theatreColor: state.theatreColor,
+        signalId: state.signalId,
+        svgPath: './4aspectsignal.svg'
+      });
+    }
+
     function wait(ms) {
       return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -340,19 +530,13 @@
 
     function measureInternalSlotGap(slot) {
       if (!slot) return 0;
-
       const svgs = Array.from(slot.querySelectorAll('svg'));
       if (svgs.length < 2) return 0;
-
-      const rects = svgs
-        .map(svg => svg.getBoundingClientRect())
-        .sort((a, b) => a.top - b.top);
-
+      const rects = svgs.map(svg => svg.getBoundingClientRect()).sort((a, b) => a.top - b.top);
       let maxGap = 0;
       for (let i = 0; i < rects.length - 1; i++) {
         maxGap = Math.max(maxGap, getVerticalGapBetweenRects(rects[i], rects[i + 1]));
       }
-
       return Math.round(maxGap);
     }
 
@@ -370,35 +554,48 @@
       combined.style.gap = `${gapPx}px`;
     }
 
-    async function renderPreview() {
-      const token = ++renderToken;
+    function updateTabUi() {
+      const isSigns = state.mode === 'signs';
+      els.tabSigns.classList.toggle('active', isSigns);
+      els.tabSignals.classList.toggle('active', !isSigns);
+      els.tabSigns.setAttribute('aria-selected', String(isSigns));
+      els.tabSignals.setAttribute('aria-selected', String(!isSigns));
+      els.signControls.hidden = !isSigns;
+      els.signalControls.hidden = isSigns;
+    }
 
+    function syncSignalStateFromInputs() {
+      state.signalType = els.signalType.value;
+      state.aspectDisplayed = els.aspectDisplayed.value;
+      state.ji = [els.ji1.value, els.ji2.value, els.ji3.value, els.ji4.value, els.ji5.value, els.ji6.value];
+      state.bottomTheatreLeft = (els.bottomTheatreLeft.value || '').slice(0, 1).toUpperCase();
+      state.bottomTheatreRight = (els.bottomTheatreRight.value || '').slice(0, 1).toUpperCase();
+      state.theatreColor = els.theatreColour.value;
+      state.signalId = normalizeSignalIdInput(els.signalId.value);
+
+      const normalized = getNormalizedSignalConfig();
+      state.ji = normalized.ji.slice();
+      state.bottomTheatreLeft = normalized.bottomTheatreLeft;
+      state.bottomTheatreRight = normalized.bottomTheatreRight;
+
+      [els.ji1.value, els.ji2.value, els.ji3.value, els.ji4.value, els.ji5.value, els.ji6.value] = state.ji;
+      els.bottomTheatreLeft.value = state.bottomTheatreLeft;
+      els.bottomTheatreRight.value = state.bottomTheatreRight;
+
+      els.ji2.disabled = state.ji[0] === 'None';
+      els.ji3.disabled = state.ji[1] === 'None';
+      els.ji5.disabled = state.ji[3] === 'None';
+      els.ji6.disabled = state.ji[4] === 'None';
+    }
+
+    async function renderSignsPreview(token) {
       state.family = els.signFamily.value;
       state.direction = els.direction.value;
       state.ps = els.psValue.value;
       state.mu = els.muValue.value;
       state.eps = els.epsValue.value;
 
-      els.preview.innerHTML = '';
-
-      if (!rendererAvailable()) {
-        if (token !== renderToken) return;
-        els.statusText.textContent = 'Renderer not loaded.';
-        els.preview.innerHTML = '<div class="empty">Load <code>rg-signs.js</code> before this page script so the preview can render.</div>';
-        return;
-      }
-
-      await ensureAppFontsReady();
-      if (token !== renderToken) return;
-
-      await window.ensureSignRenderersReady();
-      if (token !== renderToken) return;
-
-      await waitForRendererPaint();
-      if (token !== renderToken) return;
-
       const boards = getBoards();
-
       if (!boards.length) {
         if (token !== renderToken) return;
         els.statusText.textContent = 'No signs currently selected.';
@@ -428,17 +625,65 @@
       const slots = Array.from(combined.querySelectorAll(':scope > .sign-slot'));
       const stackGap = getReferenceStackGap(slots);
       applyPreviewStackGap(stackGap);
+      await waitForRendererPaint();
+    }
+
+    async function renderSignalPreview(token) {
+      syncSignalStateFromInputs();
+      const signalConfig = getNormalizedSignalConfig();
+
+      els.preview.innerHTML = '';
+      const slot = document.createElement('div');
+      slot.className = 'signal-slot';
+      slot.dataset.key = signalConfig.signalType;
+      els.preview.appendChild(slot);
+
+      await window.renderSignal(slot, signalConfig);
+      if (token !== renderToken) return;
+
+      const summary = [];
+      summary.push(`${signalConfig.signalType === '4aspect' ? '4 Aspect' : signalConfig.signalType} signal`);
+      summary.push(`aspect ${signalConfig.aspectDisplayed}`);
+      const activeJiCount = signalConfig.ji.filter(value => value !== 'None').length;
+      summary.push(`${activeJiCount} JI${activeJiCount === 1 ? '' : 's'} active`);
+      els.statusText.textContent = summary.join(' · ');
 
       await waitForRendererPaint();
     }
 
+    async function renderPreview() {
+      const token = ++renderToken;
+      updateTabUi();
+      els.preview.innerHTML = '';
+
+      if (!rendererAvailable()) {
+        if (token !== renderToken) return;
+        els.statusText.textContent = 'Renderer not loaded.';
+        els.preview.innerHTML = '<div class="empty">Load the renderer script before this page script so the preview can render.</div>';
+        return;
+      }
+
+      await ensureAppFontsReady();
+      if (token !== renderToken) return;
+
+      await window.ensureSignRenderersReady();
+      if (token !== renderToken) return;
+
+      await waitForRendererPaint();
+      if (token !== renderToken) return;
+
+      if (state.mode === 'signs') {
+        await renderSignsPreview(token);
+      } else {
+        await renderSignalPreview(token);
+      }
+    }
+
     async function collectRenderedSlots() {
       await waitForRendererPaint();
-
       const combined = els.preview.querySelector('.combined-sign');
-      if (!combined) return [];
-
-      return Array.from(combined.querySelectorAll(':scope > .sign-slot'));
+      if (combined) return Array.from(combined.querySelectorAll(':scope > .sign-slot, :scope > .signal-slot'));
+      return Array.from(els.preview.querySelectorAll(':scope > .signal-slot'));
     }
 
     function getCssVarValue(name, fallback) {
@@ -456,7 +701,7 @@
     }
 
     async function buildEmbeddedFontCss() {
-      const [gillBlob, brBlob] = await Promise.all([
+      const [gillBlob, brBlob, ledBlob] = await Promise.all([
         fetch(new URL('./GillSansExact.otf', document.baseURI)).then(r => {
           if (!r.ok) throw new Error('Could not load GillSansExact.otf for export.');
           return r.blob();
@@ -464,12 +709,17 @@
         fetch(new URL('./BRLight.ttf', document.baseURI)).then(r => {
           if (!r.ok) throw new Error('Could not load BRLight.ttf for export.');
           return r.blob();
+        }),
+        fetch(new URL('./LEDDotMatrix.ttf', document.baseURI)).then(r => {
+          if (!r.ok) throw new Error('Could not load LEDDotMatrix.ttf for export.');
+          return r.blob();
         })
       ]);
 
-      const [gillDataUrl, brDataUrl] = await Promise.all([
+      const [gillDataUrl, brDataUrl, ledDataUrl] = await Promise.all([
         blobToDataUrl(gillBlob),
-        blobToDataUrl(brBlob)
+        blobToDataUrl(brBlob),
+        blobToDataUrl(ledBlob)
       ]);
 
       return `
@@ -482,6 +732,12 @@
         @font-face {
           font-family: 'BRLight';
           src: url('${brDataUrl}') format('truetype');
+          font-weight: 400;
+          font-style: normal;
+        }
+        @font-face {
+          font-family: 'LEDDotMatrix';
+          src: url('${ledDataUrl}') format('truetype');
           font-weight: 400;
           font-style: normal;
         }
@@ -498,7 +754,7 @@
       const childSvgs = Array.from(slot.querySelectorAll('svg'));
 
       if (!childSvgs.length || !slotRect.width || !slotRect.height) {
-        throw new Error('Could not export sign slot.');
+        throw new Error('Could not export preview slot.');
       }
 
       const exportSvg = document.createElementNS(svgNS, 'svg');
@@ -553,16 +809,9 @@
       await waitForRendererPaint();
 
       const slots = await collectRenderedSlots();
-
-      if (!slots.length) {
-        throw new Error('There is nothing to export.');
-      }
+      if (!slots.length) throw new Error('There is nothing to export.');
 
       const embeddedFontCss = await buildEmbeddedFontCss();
-
-      const CANVAS_WIDTH = 55;
-      const SIDE_PADDING = 2;
-      const INNER_WIDTH = CANVAS_WIDTH - SIDE_PADDING * 2;
 
       function svgToBlob(svgElement) {
         const svgText = new XMLSerializer().serializeToString(svgElement);
@@ -571,7 +820,6 @@
 
       async function loadImageFromBlob(blob) {
         const url = URL.createObjectURL(blob);
-
         try {
           return await new Promise((resolve, reject) => {
             const img = new Image();
@@ -586,8 +834,11 @@
 
       const referenceGapPx = getReferenceStackGap(slots);
       let referenceScale = 1;
-
       const renderedItems = [];
+      const signExportMode = state.mode === 'signs';
+      const CANVAS_WIDTH = signExportMode ? 55 : Math.max(120, Math.round(slots[0].getBoundingClientRect().width));
+      const SIDE_PADDING = signExportMode ? 2 : 0;
+      const INNER_WIDTH = CANVAS_WIDTH - SIDE_PADDING * 2;
 
       for (let index = 0; index < slots.length; index++) {
         const slot = slots[index];
@@ -597,10 +848,7 @@
 
         const naturalWidth = img.naturalWidth || item.width;
         const naturalHeight = img.naturalHeight || item.height;
-
-        if (!naturalWidth || !naturalHeight) {
-          throw new Error('Invalid exported sign size.');
-        }
+        if (!naturalWidth || !naturalHeight) throw new Error('Invalid exported preview size.');
 
         const scale = INNER_WIDTH / naturalWidth;
         const drawWidth = Math.max(1, Math.round(naturalWidth * scale));
@@ -610,20 +858,11 @@
           referenceScale = scale;
         }
 
-        renderedItems.push({
-          img,
-          drawWidth,
-          drawHeight
-        });
+        renderedItems.push({ img, drawWidth, drawHeight });
       }
 
-      const exportGap = referenceGapPx > 0
-        ? Math.max(1, Math.round(referenceGapPx * referenceScale))
-        : 0;
-
-      const totalHeight =
-        renderedItems.reduce((sum, item) => sum + item.drawHeight, 0) +
-        exportGap * Math.max(0, renderedItems.length - 1);
+      const exportGap = referenceGapPx > 0 ? Math.max(1, Math.round(referenceGapPx * referenceScale)) : 0;
+      const totalHeight = renderedItems.reduce((sum, item) => sum + item.drawHeight, 0) + exportGap * Math.max(0, renderedItems.length - 1);
 
       const canvas = document.createElement('canvas');
       canvas.width = CANVAS_WIDTH;
@@ -638,13 +877,9 @@
       for (let i = 0; i < renderedItems.length; i++) {
         const item = renderedItems[i];
         const x = Math.round((CANVAS_WIDTH - item.drawWidth) / 2);
-
         ctx.drawImage(item.img, x, y, item.drawWidth, item.drawHeight);
         y += item.drawHeight;
-
-        if (i < renderedItems.length - 1) {
-          y += exportGap;
-        }
+        if (i < renderedItems.length - 1) y += exportGap;
       }
 
       return await new Promise((resolve, reject) => {
@@ -658,9 +893,7 @@
     async function copyPreviewAsPng() {
       try {
         const blob = await buildCompositePngBlob();
-        await navigator.clipboard.write([
-          new ClipboardItem({ 'image/png': blob })
-        ]);
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
         els.message.textContent = 'PNG copied to clipboard.';
       } catch (error) {
         console.error(error);
@@ -671,30 +904,43 @@
     async function downloadPreviewAsPng() {
       try {
         const blob = await buildCompositePngBlob();
+        const defaultName = state.mode === 'signs' ? 'sign-preview.png' : 'signal-preview.png';
 
-        const handle = await window.showSaveFilePicker({
-          types: [
-            {
-              description: 'PNG image',
-              accept: {
-                'image/png': ['.png']
-              }
-            }
-          ]
-        });
-
-        const writable = await handle.createWritable();
-        await writable.write(blob);
-        await writable.close();
+        if (window.showSaveFilePicker) {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: defaultName,
+            types: [{ description: 'PNG image', accept: { 'image/png': ['.png'] } }]
+          });
+          const writable = await handle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = defaultName;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
 
         els.message.textContent = 'PNG saved.';
       } catch (err) {
         if (err.name !== 'AbortError') {
           console.error(err);
-          alert('Failed to save PNG.');
+          els.message.textContent = `Save failed: ${err.message || 'Unknown error.'}`;
         }
       }
     }
+
+    els.tabSigns.addEventListener('click', () => {
+      state.mode = 'signs';
+      renderPreview();
+    });
+
+    els.tabSignals.addEventListener('click', () => {
+      state.mode = 'signals';
+      renderPreview();
+    });
 
     els.signFamily.addEventListener('change', renderPreview);
     els.direction.addEventListener('change', renderPreview);
@@ -702,9 +948,34 @@
     els.muValue.addEventListener('input', renderPreview);
     els.epsValue.addEventListener('input', renderPreview);
 
+    [
+      els.signalType,
+      els.aspectDisplayed,
+      els.ji1,
+      els.ji2,
+      els.ji3,
+      els.ji4,
+      els.ji5,
+      els.ji6,
+      els.theatreColour
+    ].forEach(el => el.addEventListener('change', renderPreview));
+
+    [els.bottomTheatreLeft, els.bottomTheatreRight].forEach(el => {
+      el.addEventListener('input', () => {
+        el.value = (el.value || '').replace(/\s+/g, '').slice(0, 1).toUpperCase();
+        renderPreview();
+      });
+    });
+
+    els.signalId.addEventListener('input', () => {
+      els.signalId.value = normalizeSignalIdInput(els.signalId.value);
+      renderPreview();
+    });
+
     els.copyPngBtn.addEventListener('click', copyPreviewAsPng);
     els.downloadPngBtn.addEventListener('click', downloadPreviewAsPng);
 
+    syncSignalStateFromInputs();
     renderPreview();
   </script>
 </body>

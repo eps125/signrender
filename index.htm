@@ -268,6 +268,18 @@
       padding: 40px 20px;
     }
 
+    textarea {
+      width: 100%;
+      min-height: 96px;
+      resize: vertical;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+    }
+
     @media (max-width: 960px) {
       .app {
         grid-template-columns: 1fr;
@@ -290,6 +302,7 @@
     <div class="tabs" role="tablist" aria-label="Renderer mode">
       <button id="tabSigns" class="tab-btn active" type="button" role="tab" aria-selected="true">Signs</button>
       <button id="tabSignals" class="tab-btn" type="button" role="tab" aria-selected="false">Signals</button>
+      <button id="tabCsm" class="tab-btn" type="button" role="tab" aria-selected="false">CSM</button>
     </div>
 
     <div class="app">
@@ -410,6 +423,20 @@
           </div>
         </div>
 
+        <div id="csmControls" class="control-group" hidden>
+          <div class="field">
+            <label for="csmValue">CSM marking</label>
+            <input id="csmValue" type="text" maxlength="16" placeholder="e.g. S, 11, 11X, 4-8, 9-11" />
+            <div class="hint"></div>
+          </div>
+
+          <div class="field">
+            <label for="csmTraction">Traction class identifiers</label>
+            <textarea id="csmTraction" rows="4" placeholder="Optional. One per line, or separate with commas"></textarea>
+            <div class="hint"></div>
+          </div>
+        </div>
+
         <div class="field">
           <button id="copyPngBtn" type="button">Copy preview as PNG</button>
         </div>
@@ -423,7 +450,7 @@
 
       <section class="panel preview-wrap">
         <div class="toolbar">
-          <div class="status" id="statusText">No signs currently selected.</div>
+          <!--<div class="status" id="statusText">No signs currently selected.</div>-->
         </div>
         <div class="preview-stage">
           <div id="preview" class="sign-stack"></div>
@@ -432,7 +459,7 @@
     </div>
   </div>
 
-  <script src="./renderer-110326-5.js"></script>
+  <script src="./renderer-120326.js"></script>
 
   <script>
     const signalColourOptions = ['None', 'Blank', 'White', 'Green', 'Yellow', 'Red'];
@@ -451,8 +478,10 @@
     const els = {
       tabSigns: document.getElementById('tabSigns'),
       tabSignals: document.getElementById('tabSignals'),
+      tabCsm: document.getElementById('tabCsm'),
       signControls: document.getElementById('signControls'),
       signalControls: document.getElementById('signalControls'),
+      csmControls: document.getElementById('csmControls'),
       signFamily: document.getElementById('signFamily'),
       direction: document.getElementById('direction'),
       psValue: document.getElementById('psValue'),
@@ -472,6 +501,8 @@
       bottomTheatreRight: document.getElementById('bottomTheatreRight'),
       theatreColour: document.getElementById('theatreColour'),
       signalId: document.getElementById('signalId'),
+      csmValue: document.getElementById('csmValue'),
+      csmTraction: document.getElementById('csmTraction'),
       preview: document.getElementById('preview'),
       statusText: document.getElementById('statusText'),
       message: document.getElementById('message'),
@@ -493,7 +524,9 @@
       bottomTheatreLeft: '',
       bottomTheatreRight: '',
       theatreColor: 'White',
-      signalId: ''
+      signalId: '',
+      csmValue: '',
+      csmTraction: []
     };
 
     let renderToken = 0;
@@ -506,6 +539,7 @@
         && typeof window.renderPSWI === 'function'
         && typeof window.renderEPSWI === 'function'
         && typeof window.renderSignal === 'function'
+        && typeof window.renderCSM === 'function'
         && typeof window.normalizeSignalConfig === 'function';
     }
 
@@ -535,6 +569,42 @@
 
     function normalizeSignalIdInput(value) {
       return (value || '').toUpperCase().replace(/\s+/g, ' ').replace(/[^A-Z0-9 ]/g, '').trimStart().slice(0, 9);
+    }
+
+
+    function normalizeCsmValueInput(value) {
+      let cleaned = (value || '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9/\-\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      cleaned = cleaned.replace(/\s*([\-/])\s*/g, ' $1 ');
+      cleaned = cleaned.replace(/\s+X$/g, 'X');
+      return cleaned.slice(0, 16);
+    }
+
+    function parseTractionIdentifiers(value) {
+      const parts = (value || '')
+        .split(/[,\n\r;]+/)
+        .map(part => part.trim())
+        .filter(Boolean)
+        .map(part => part.replace(/\s+/g, ' ').slice(0, 24));
+
+      return Array.from(new Set(parts)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+    }
+
+    function normalizeCsmConfig() {
+      const marker = normalizeCsmValueInput(els.csmValue.value);
+      const canonical = marker.replace(/\s+/g, '');
+      const match = canonical.match(/^(S|\d{1,2}X?|\d{1,2}[\-/]\d{1,2}X?)$/);
+      const traction = parseTractionIdentifiers(els.csmTraction.value);
+      state.csmValue = match ? canonical : '';
+      state.csmTraction = traction;
+      return {
+        value: state.csmValue,
+        traction
+      };
     }
 
     function getBoards() {
@@ -620,12 +690,17 @@
 
     function updateTabUi() {
       const isSigns = state.mode === 'signs';
+      const isSignals = state.mode === 'signals';
+      const isCsm = state.mode === 'csm';
       els.tabSigns.classList.toggle('active', isSigns);
-      els.tabSignals.classList.toggle('active', !isSigns);
+      els.tabSignals.classList.toggle('active', isSignals);
+      els.tabCsm.classList.toggle('active', isCsm);
       els.tabSigns.setAttribute('aria-selected', String(isSigns));
-      els.tabSignals.setAttribute('aria-selected', String(!isSigns));
+      els.tabSignals.setAttribute('aria-selected', String(isSignals));
+      els.tabCsm.setAttribute('aria-selected', String(isCsm));
       els.signControls.hidden = !isSigns;
-      els.signalControls.hidden = isSigns;
+      els.signalControls.hidden = !isSignals;
+      els.csmControls.hidden = !isCsm;
     }
 
     function syncSignalStateFromInputs() {
@@ -717,6 +792,30 @@
       await waitForRendererPaint();
     }
 
+
+    async function renderCsmPreview(token) {
+      const csmConfig = normalizeCsmConfig();
+
+      if (!csmConfig.value) {
+        if (token !== renderToken) return;
+        els.statusText.textContent = 'No CSM currently selected.';
+        els.preview.innerHTML = '<div class="empty">Enter S, a car count, or a hyphenated range to generate a car stop marker.</div>';
+        return;
+      }
+
+      els.preview.innerHTML = '';
+      const slot = document.createElement('div');
+      slot.className = 'sign-slot';
+      slot.dataset.key = 'CSM';
+      els.preview.appendChild(slot);
+
+      await window.renderCSM(slot, csmConfig, 1);
+      if (token !== renderToken) return;
+
+      els.statusText.textContent = `${csmConfig.value}${csmConfig.traction.length ? ` · ${csmConfig.traction.length} traction class${csmConfig.traction.length === 1 ? '' : 'es'}` : ' · all train classes'}`;
+      await waitForRendererPaint();
+    }
+
     async function renderPreview() {
       const token = ++renderToken;
       updateTabUi();
@@ -740,8 +839,10 @@
 
       if (state.mode === 'signs') {
         await renderSignsPreview(token);
-      } else {
+      } else if (state.mode === 'signals') {
         await renderSignalPreview(token);
+      } else {
+        await renderCsmPreview(token);
       }
     }
 
@@ -749,7 +850,7 @@
       await waitForRendererPaint();
       const combined = els.preview.querySelector('.combined-sign');
       if (combined) return Array.from(combined.querySelectorAll(':scope > .sign-slot, :scope > .signal-slot'));
-      return Array.from(els.preview.querySelectorAll(':scope > .signal-slot'));
+      return Array.from(els.preview.querySelectorAll(':scope > .sign-slot, :scope > .signal-slot'));
     }
 
     function getCssVarValue(name, fallback) {
@@ -803,18 +904,6 @@
         }
         @font-face {
           font-family: 'LEDDotMatrix';
-          src: url('${ledDataUrl}') format('truetype');
-          font-weight: 400;
-          font-style: normal;
-        }
-        @font-face {
-          font-family: 'LED Dot-Matrix';
-          src: url('${ledDataUrl}') format('truetype');
-          font-weight: 400;
-          font-style: normal;
-        }
-        @font-face {
-          font-family: 'LEDDotMatrixRegular';
           src: url('${ledDataUrl}') format('truetype');
           font-weight: 400;
           font-style: normal;
@@ -1001,7 +1090,7 @@
     async function downloadPreviewAsPng() {
       try {
         const blob = await buildCompositePngBlob();
-        const defaultName = state.mode === 'signs' ? 'sign-preview.png' : 'signal-preview.png';
+        const defaultName = state.mode === 'signs' ? 'sign-preview.png' : (state.mode === 'signals' ? 'signal-preview.png' : 'csm-preview.png');
 
         if (window.showSaveFilePicker) {
           const handle = await window.showSaveFilePicker({
@@ -1039,6 +1128,11 @@
       renderPreview();
     });
 
+    els.tabCsm.addEventListener('click', () => {
+      state.mode = 'csm';
+      renderPreview();
+    });
+
     els.signFamily.addEventListener('change', renderPreview);
     els.direction.addEventListener('change', renderPreview);
     els.psValue.addEventListener('input', renderPreview);
@@ -1070,6 +1164,13 @@
       els.signalId.value = normalizeSignalIdInput(els.signalId.value);
       renderPreview();
     });
+
+    els.csmValue.addEventListener('input', () => {
+      els.csmValue.value = normalizeCsmValueInput(els.csmValue.value);
+      renderPreview();
+    });
+
+    els.csmTraction.addEventListener('input', renderPreview);
 
     els.copyPngBtn.addEventListener('click', copyPreviewAsPng);
     els.downloadPngBtn.addEventListener('click', downloadPreviewAsPng);

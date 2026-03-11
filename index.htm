@@ -432,7 +432,7 @@
     </div>
   </div>
 
-  <script src="./renderer-110326-4.js"></script>
+  <script src="./renderer-110326-5.js"></script>
 
   <script>
     const signalColourOptions = ['None', 'Blank', 'White', 'Green', 'Yellow', 'Red'];
@@ -803,6 +803,18 @@
         }
         @font-face {
           font-family: 'LEDDotMatrix';
+          src: url('${ledDataUrl}') format('truetype');
+          font-weight: 400;
+          font-style: normal;
+        }
+        @font-face {
+          font-family: 'LED Dot-Matrix';
+          src: url('${ledDataUrl}') format('truetype');
+          font-weight: 400;
+          font-style: normal;
+        }
+        @font-face {
+          font-family: 'LEDDotMatrixRegular';
           src: url('${ledDataUrl}') format('truetype');
           font-weight: 400;
           font-style: normal;

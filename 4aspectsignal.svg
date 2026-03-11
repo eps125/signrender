@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 255 328.35">
+  <defs>
+    <style>
+      .cls-1, .cls-2, .cls-3 {
+        fill: #fff;
+      }
+
+      .cls-4 {
+        fill: #e73a39;
+      }
+
+      .cls-4, .cls-5, .cls-6, .cls-7, .cls-8 {
+        stroke-miterlimit: 10;
+      }
+
+      .cls-4, .cls-6, .cls-7, .cls-8 {
+        stroke: #000;
+      }
+
+      .cls-9 {
+        fill: #191919;
+      }
+
+      .cls-2 {
+        font-family: LEDDotMatrixRegular, 'LED Dot-Matrix';
+        font-size: 48px;
+      }
+
+      .cls-5 {
+        fill: #010101;
+        stroke: #010101;
+      }
+
+      .cls-6, .cls-10 {
+        fill: #3a3a3a;
+      }
+
+      .cls-11, .cls-8 {
+        fill: #f3ac52;
+      }
+
+      .cls-3 {
+        font-family: GillSansMT, 'Gill Sans MT';
+        font-size: 16px;
+      }
+
+      .cls-7 {
+        fill: #519442;
+      }
+    </style>
+  </defs>
+  <g id="Signal_ID_Left">
+    <rect id="Signal_ID_Left_Plate" class="cls-5" x="11.25" y="203.42" width="60" height="38"/>
+    <text id="Signal_ID_Left_Value" class="cls-3" transform="translate(31.41 220.33)"><tspan x="0" y="0">AB</tspan><tspan x="-2.16" y="16">123</tspan></text>
+  </g>
+  <g id="Signal_Base">
+    <g id="Signal_Base_Outer">
+      <path d="M157.5,275.89h-60c-5.86-5.86-9.14-9.14-15-15v-130c5.86-5.86,9.14-9.14,15-15h60c5.86,5.86,9.14,9.14,15,15v130c-5.86,5.86-9.14,9.14-15,15Z"/>
+    </g>
+    <g id="F6_Base">
+      <polygon id="F6_Base_Outer" points="88.61 98.39 187 196.78 209.42 196.78 225.89 180.31 225.89 157.89 127.5 59.5 88.61 98.39"/>
+    </g>
+    <g id="F5_Base">
+      <polygon id="F5_Base_Outer" points="116.11 70.89 239.14 70.89 255 86.75 255 110.03 239.14 125.89 172.5 125.89 172.5 130.89 82.5 130.89 82.5 125.89 82.5 124.21 82.5 104.5 116.11 70.89"/>
+    </g>
+    <g id="F4_Base">
+      <polygon id="F4_Base_Outer" points="187 0 209.42 0 225.89 16.46 225.89 38.89 172.5 92.28 172.5 104.5 172.5 115.89 172.5 130.89 82.5 130.89 82.5 115.89 82.5 104.5 187 0"/>
+      <path id="F4_Base_Inner" d="M108.05,142.58l107.83-107.83c0-5.52,0-8.62,0-14.14l-10.61-10.61h-14.14s-107.83,107.83-107.83,107.83l24.75,24.75Z"/>
+    </g>
+    <g id="F3_Base">
+      <polygon id="F3_Base_Outer" points="166.39 98.39 68 196.78 45.58 196.78 29.11 180.31 29.11 157.89 127.5 59.5 166.39 98.39"/>
+    </g>
+    <g id="F2_Base">
+      <polygon id="F2_Base_Outer" points="138.89 70.89 15.86 70.89 0 86.75 0 110.03 15.86 125.89 82.5 125.89 82.5 130.89 172.5 130.89 172.5 125.89 172.5 124.21 172.5 104.5 138.89 70.89"/>
+    </g>
+    <g id="F1_Base">
+      <polygon id="F1_Base_Outer" points="68 0 45.58 0 29.11 16.46 29.11 38.89 82.5 92.28 82.5 104.5 82.5 115.89 82.5 130.89 172.5 130.89 172.5 115.89 172.5 104.5 68 0"/>
+    </g>
+    <rect id="Signal_Base_Inner" class="cls-9" x="107.5" y="120.89" width="40" height="150"/>
+  </g>
+  <g id="Feather_Indications">
+    <g id="F6_Indication">
+      <g id="F6_Lights">
+        <circle id="L1" class="cls-1" cx="127.5" cy="98.39" r="7.5"/>
+        <circle id="L2" class="cls-1" cx="145.18" cy="116.07" r="7.5"/>
+        <circle id="L3" class="cls-1" cx="162.86" cy="133.74" r="7.5"/>
+        <circle id="L4" class="cls-1" cx="180.53" cy="151.42" r="7.5"/>
+        <circle id="L5" class="cls-1" cx="198.21" cy="169.1" r="7.5"/>
+      </g>
+    </g>
+    <g id="F5_Indication">
+      <g id="F5_Lights">
+        <circle id="L1-2" data-name="L1" class="cls-1" cx="127.5" cy="98.39" r="7.5"/>
+        <circle id="L2-2" data-name="L2" class="cls-1" cx="152.5" cy="98.39" r="7.5"/>
+        <circle id="L3-2" data-name="L3" class="cls-1" cx="177.5" cy="98.39" r="7.5"/>
+        <circle id="L4-2" data-name="L4" class="cls-1" cx="202.5" cy="98.39" r="7.5"/>
+        <circle id="L5-2" data-name="L5" class="cls-1" cx="227.5" cy="98.39" r="7.5"/>
+      </g>
+    </g>
+    <g id="F4_Indication">
+      <g id="F4_Lights">
+        <circle id="L1-3" data-name="L1" class="cls-1" cx="127.5" cy="98.39" r="7.5"/>
+        <circle id="L2-3" data-name="L2" class="cls-1" cx="145.18" cy="80.71" r="7.5"/>
+        <circle id="L3-3" data-name="L3" class="cls-1" cx="162.86" cy="63.03" r="7.5"/>
+        <circle id="L4-3" data-name="L4" class="cls-1" cx="180.53" cy="45.36" r="7.5"/>
+        <circle id="L5-3" data-name="L5" class="cls-1" cx="198.21" cy="27.68" r="7.5"/>
+      </g>
+    </g>
+    <g id="F3_Indication">
+      <g id="F3_Lights">
+        <circle id="L1-4" data-name="L1" class="cls-1" cx="127.5" cy="98.39" r="7.5"/>
+        <circle id="L2-4" data-name="L2" class="cls-1" cx="109.82" cy="116.07" r="7.5"/>
+        <circle id="L3-4" data-name="L3" class="cls-1" cx="92.14" cy="133.74" r="7.5"/>
+        <circle id="L4-4" data-name="L4" class="cls-1" cx="74.47" cy="151.42" r="7.5"/>
+        <circle id="L5-4" data-name="L5" class="cls-1" cx="56.79" cy="169.1" r="7.5"/>
+      </g>
+    </g>
+    <g id="F2_Indication">
+      <g id="F2_Lights">
+        <circle id="L1-5" data-name="L1" class="cls-1" cx="127.5" cy="98.39" r="7.5"/>
+        <circle id="L2-5" data-name="L2" class="cls-1" cx="102.5" cy="98.39" r="7.5"/>
+        <circle id="L3-5" data-name="L3" class="cls-1" cx="77.5" cy="98.39" r="7.5"/>
+        <circle id="L4-5" data-name="L4" class="cls-1" cx="52.5" cy="98.39" r="7.5"/>
+        <circle id="L5-5" data-name="L5" class="cls-1" cx="27.5" cy="98.39" r="7.5"/>
+      </g>
+    </g>
+    <g id="F1_Indication">
+      <g id="F1_Lights">
+        <circle id="L1-6" data-name="L1" class="cls-1" cx="127.5" cy="98.39" r="7.5"/>
+        <circle id="L2-6" data-name="L2" class="cls-1" cx="109.82" cy="80.71" r="7.5"/>
+        <circle id="L3-6" data-name="L3" class="cls-1" cx="92.14" cy="63.03" r="7.5"/>
+        <circle id="L4-6" data-name="L4" class="cls-1" cx="74.47" cy="45.36" r="7.5"/>
+        <circle id="L5-6" data-name="L5" class="cls-1" cx="56.79" cy="27.68" r="7.5"/>
+      </g>
+    </g>
+  </g>
+  <g id="Theatre_Bottom_Base">
+    <rect id="Bottom_Left_Outer" x="82.5" y="275.89" width="45" height="45"/>
+    <rect id="Bottom_Left_Inner" class="cls-10" x="84.5" y="277.89" width="41" height="41" transform="translate(403.39 193.39) rotate(90)"/>
+    <rect id="Bottom_Right_Outer" x="127.5" y="275.89" width="45" height="45"/>
+    <rect id="Bottom_Right_Inner" class="cls-10" x="129.5" y="277.89" width="41" height="41" transform="translate(448.39 148.39) rotate(90)"/>
+    <text id="Bottom_Left_Indication" class="cls-2" transform="translate(89.53 315.19)"><tspan x="0" y="0">U</tspan></text>
+    <text id="Bottom_Right_Indication" class="cls-2" transform="translate(134.53 315.19)"><tspan x="0" y="0">M</tspan></text>
+  </g>
+  <g id="Aspects">
+    <circle id="R" class="cls-6" cx="127.5" cy="255.89" r="15"/>
+    <circle id="Y" class="cls-6" cx="127.5" cy="215.89" r="15"/>
+    <circle id="G" class="cls-6" cx="127.5" cy="175.89" r="15"/>
+    <circle id="YY" class="cls-6" cx="127.5" cy="135.89" r="15"/>
+  </g>
+  <g id="Aspects_Off">
+    <circle id="R-2" data-name="R" class="cls-4" cx="127.5" cy="255.89" r="15"/>
+    <circle id="Y-2" data-name="Y" class="cls-8" cx="127.5" cy="215.89" r="15"/>
+    <g id="YY-2" data-name="YY">
+      <circle id="YY-3" data-name="YY" class="cls-8" cx="127.5" cy="215.89" r="15"/>
+      <circle id="YY-4" data-name="YY" class="cls-8" cx="127.5" cy="135.89" r="15"/>
+    </g>
+    <polygon id="FY" class="cls-11" points="127.5 208.83 145.18 199.16 135.5 216.83 145.18 234.51 127.5 224.83 109.82 234.51 119.5 216.83 109.82 199.16 127.5 208.83"/>
+    <g id="FYY">
+      <polygon id="FY-2" data-name="FY" class="cls-11" points="127.5 127.89 145.18 118.21 135.5 135.89 145.18 153.57 127.5 143.89 109.82 153.57 119.5 135.89 109.82 118.21 127.5 127.89"/>
+      <polygon id="FY-3" data-name="FY" class="cls-11" points="127.5 207.89 145.18 198.21 135.5 215.89 145.18 233.57 127.5 223.89 109.82 233.57 119.5 215.89 109.82 198.21 127.5 207.89"/>
+    </g>
+    <circle id="G-2" data-name="G" class="cls-7" cx="127.5" cy="175.89" r="15"/>
+  </g>
+</svg>

@@ -435,6 +435,20 @@
             <textarea id="csmTraction" rows="4" placeholder="Optional. One per line, or separate with commas"></textarea>
             <div class="hint"></div>
           </div>
+
+          <div class="field">
+            <label>Traction class position</label>
+            <div class="radio-group" role="radiogroup" aria-label="Traction class position">
+              <label class="radio-option" for="csmTractionAbove">
+                <input id="csmTractionAbove" name="csmTractionPosition" type="radio" value="above" checked />
+                <span>Above sign</span>
+              </label>
+              <label class="radio-option" for="csmTractionBelow">
+                <input id="csmTractionBelow" name="csmTractionPosition" type="radio" value="below" />
+                <span>Below sign</span>
+              </label>
+            </div>
+          </div>
         </div>
 
         <div class="field">
@@ -503,6 +517,8 @@
       signalId: document.getElementById('signalId'),
       csmValue: document.getElementById('csmValue'),
       csmTraction: document.getElementById('csmTraction'),
+      csmTractionBelow: document.getElementById('csmTractionBelow'),
+      csmTractionAbove: document.getElementById('csmTractionAbove'),
       preview: document.getElementById('preview'),
       statusText: document.getElementById('statusText'),
       message: document.getElementById('message'),
@@ -603,7 +619,8 @@
       state.csmTraction = traction;
       return {
         value: state.csmValue,
-        traction
+        traction,
+        tractionPosition: els.csmTractionBelow.checked ? 'below' : 'above'
       };
     }
 
@@ -908,6 +925,12 @@
           font-weight: 400;
           font-style: normal;
         }
+        @font-face {
+          font-family: 'LED Dot-Matrix';
+          src: url('${ledDataUrl}') format('truetype');
+          font-weight: 400;
+          font-style: normal;
+        }
         :root {
           --red: ${getCssVarValue('--red', '#e11d48')};
           --yellow: ${getCssVarValue('--yellow', '#facc15')};
@@ -1092,29 +1115,19 @@
         const blob = await buildCompositePngBlob();
         const defaultName = state.mode === 'signs' ? 'sign-preview.png' : (state.mode === 'signals' ? 'signal-preview.png' : 'csm-preview.png');
 
-        if (window.showSaveFilePicker) {
-          const handle = await window.showSaveFilePicker({
-            suggestedName: defaultName,
-            types: [{ description: 'PNG image', accept: { 'image/png': ['.png'] } }]
-          });
-          const writable = await handle.createWritable();
-          await writable.write(blob);
-          await writable.close();
-        } else {
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = defaultName;
-          a.click();
-          URL.revokeObjectURL(url);
-        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = defaultName;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
 
-        els.message.textContent = 'PNG saved.';
+        els.message.textContent = 'PNG downloaded.';
       } catch (err) {
-        if (err.name !== 'AbortError') {
-          console.error(err);
-          els.message.textContent = `Save failed: ${err.message || 'Unknown error.'}`;
-        }
+        console.error(err);
+        els.message.textContent = `Download failed: ${err.message || 'Unknown error.'}`;
       }
     }
 
@@ -1171,6 +1184,8 @@
     });
 
     els.csmTraction.addEventListener('input', renderPreview);
+    els.csmTractionAbove.addEventListener('change', renderPreview);
+    els.csmTractionBelow.addEventListener('change', renderPreview);
 
     els.copyPngBtn.addEventListener('click', copyPreviewAsPng);
     els.downloadPngBtn.addEventListener('click', downloadPreviewAsPng);

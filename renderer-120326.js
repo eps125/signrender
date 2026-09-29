@@ -356,7 +356,8 @@
       ? Array.from(new Set(config.traction.map(v => (v || '').toString().trim().replace(/\s+/g, ' ').slice(0, 24)).filter(Boolean)))
           .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
       : [];
-    return { value, traction };
+    const tractionPosition = config.tractionPosition === 'below' ? 'below' : 'above';
+    return { value, traction, tractionPosition };
   }
 
   function parseCsmMarker(value) {
@@ -426,7 +427,9 @@
     const totalHeight = classStackHeight + boardHeight;
     const boardX = (totalWidth - boardWidth) / 2;
     const classX = (totalWidth - classBoxWidth) / 2;
-    const boardY = classStackHeight;
+    const tractionBelow = normalized.tractionPosition === 'below';
+    const boardY = tractionBelow ? 0 : classStackHeight;
+    const classStartY = tractionBelow ? boardHeight + classGap : 0;
 
     const svg = createSvgEl('svg', {
       viewBox: `0 0 ${totalWidth} ${totalHeight}`,
@@ -435,7 +438,7 @@
     });
 
     normalized.traction.forEach((label, index) => {
-      const y = index * (classBoxHeight + classGap);
+      const y = classStartY + index * (classBoxHeight + classGap);
       svg.appendChild(createSvgEl('rect', {
         x: classX,
         y,
@@ -646,7 +649,23 @@
       ['White','Green','Yellow','Red'].includes(v)
     );
 
+    // Every feather shares its first bulb (L1) at the pivot, so a Blank feather drawn on top
+    // would hide a lit one. Draw a single pivot bulb above all feathers in the lit colour.
+    const litValues = jiValues.filter(v => ['White','Green','Yellow','Red'].includes(v));
+    const pivotFill = SIGNAL_COLORS[litValues.includes('White') ? 'White' : litValues[0]];
+    const featherGroup = svg.querySelector('#Feather_Indications');
+    let pivot = svg.querySelector('#ZZZ_L1');
+    if (!pivot && featherGroup) {
+      const sharedL1 = svg.querySelector('#F1_Lights circle');
+      pivot = svg.ownerDocument.createElementNS(svgNS, 'circle');
+      pivot.setAttribute('id', 'ZZZ_L1');
+      pivot.setAttribute('cx', sharedL1?.getAttribute('cx') ?? '127.5');
+      pivot.setAttribute('cy', sharedL1?.getAttribute('cy') ?? '98.39');
+      pivot.setAttribute('r', sharedL1?.getAttribute('r') ?? '7.5');
+      featherGroup.appendChild(pivot);
+    }
     setNodeVisible(svg, 'ZZZ_L1', anyJiActive);
+    if (anyJiActive) applyFillToNode(pivot, pivotFill);
 
     jiValues.forEach((value, index) => {
       const feather = index + 1;
@@ -677,7 +696,9 @@
       node.textContent = text;
       applyFillToNode(node, theatreFill);
       node.style.setProperty('fill', theatreFill, 'important');
-      node.setAttribute('font-family', '"LEDDotMatrix", "LED Dot-Matrix", LEDDotMatrixRegular');
+      // Inline style, not an attribute: the SVG's .cls-2 rule outranks presentation attributes
+      // and names 'LED Dot-Matrix', which isn't embedded in PNG exports.
+      node.style.setProperty('font-family', '"LEDDotMatrix", "LED Dot-Matrix", LEDDotMatrixRegular', 'important');
     };
 
     applyTheatre('Left', config.bottomTheatreLeft);
@@ -727,7 +748,7 @@
 
         textNode.appendChild(t1);
         textNode.appendChild(t2);
-        textNode.setAttribute('font-family', 'GillSansExact, GillSansMT, "Gill Sans MT"');
+        textNode.style.setProperty('font-family', 'GillSansExact, GillSansMT, "Gill Sans MT"', 'important');
         applyFillToNode(textNode, '#ffffff');
       }
     }
